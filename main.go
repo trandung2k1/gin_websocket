@@ -98,5 +98,5 @@ func main() {
 	port := os.Getenv("PORT")
 	s := fmt.Sprintf("Server listen on:http://localhost:%s", port)
 	fmt.Println(s)
-	router.Run(":4000")
+	router.Run(":" + os.Getenv("PORT"))
 }
