@@ -5,11 +5,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	docs "websocket/docs"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
-
 	socketio "github.com/googollee/go-socket.io"
+	"github.com/joho/godotenv"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func GinMiddleware(allowOrigin string) gin.HandlerFunc {
@@ -26,6 +28,17 @@ func GinMiddleware(allowOrigin string) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func Helloworld(g *gin.Context) {
+	g.JSON(http.StatusOK, "helloworld")
+}
+
+func Ping(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"message": "pong",
+	})
+}
+
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 	err := godotenv.Load()
@@ -33,6 +46,17 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 	router := gin.New()
+	docs.SwaggerInfo.BasePath = "/"
+	v1 := router.Group("/api/v1")
+	{
+		eg := v1.Group("/example")
+		{
+			eg.GET("/helloworld", Helloworld)
+		}
+	}
+
+	router.GET("/ping", Ping)
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	server := socketio.NewServer(nil)
 	server.OnConnect("/", func(s socketio.Conn) error {
 		s.SetContext("")
@@ -64,6 +88,7 @@ func main() {
 			fmt.Printf("socketio listen error: %s\n", err)
 		}
 	}()
+
 	defer server.Close()
 	router.Use(GinMiddleware("http://127.0.0.1:5500"))
 	router.Use(GinMiddleware("http://localhost:3000"))
